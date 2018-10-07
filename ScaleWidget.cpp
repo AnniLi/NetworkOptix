@@ -158,6 +158,7 @@ void ScaleWidget::wheelEvent(QWheelEvent *ev)
             offset_ /= 1.2;
     }
     offset_ = qMax(qMin(offset_, 0.0), -(width() - 1.0) * (scale_ - 1));
+    update();
     timer_.stop();
     timer_.start();
 }
