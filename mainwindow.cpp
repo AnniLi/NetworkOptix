@@ -22,7 +22,7 @@ MainWindow::MainWindow(QWidget *parent) :
     dialog->setInputMode(QInputDialog::IntInput);
     dialog->setIntMinimum(1);
     dialog->setIntMaximum(1e8);
-    dialog->setIntValue(1e4);
+    dialog->setIntValue(1e8);
 }
 
 MainWindow::~MainWindow()
@@ -36,11 +36,13 @@ void MainWindow::generateLabels()
     {
         int count = dialog->intValue();
         ui->generateLaelsButton->setEnabled(false);
+        ui->generateLaelsButton->setText("Generating...");
         if (!watcher_ || watcher_->isFinished())
         {
             watcher_ = new QFutureWatcher<QMap<int, int>>();
             connect(watcher_, &QFutureWatcher<QMap<int, int>>::finished, [this] () {
                 ui->generateLaelsButton->setEnabled(true);
+                 ui->generateLaelsButton->setText("Generate");
                 if (scaleWidget_)
                     scaleWidget_->setLabels(watcher_->future().result());
             });

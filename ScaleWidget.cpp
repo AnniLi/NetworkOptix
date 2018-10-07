@@ -31,6 +31,7 @@ ScaleWidget::~ScaleWidget()
 
 void ScaleWidget::setLabels(const QMap<int, int> &labels)
 {
+    QMutexLocker locker(mutex_);
     if (!labels.isEmpty())
     {
         labels_ = labels;
@@ -216,6 +217,7 @@ void ScaleWidget::updateData()
 {
     if (!watcher_ || watcher_->isFinished())
     {
+        delete watcher_;
         watcher_ = new QFutureWatcher<void>();
         connect(watcher_, &QFutureWatcher<void>::finished, [this] () {update();});
         QFuture<void> future = QtConcurrent::run(this, &ScaleWidget::recalculate);
