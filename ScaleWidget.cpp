@@ -48,13 +48,14 @@ void ScaleWidget::paintEvent(QPaintEvent *ev)
     QPen penText(QColor(1, 1, 1));
     drawScale(&p);
 
-    double koef = width() / double(rangeT);
+    double koef = width() * scale_ / double(rangeT);
     QPen currentPen;
     QBrush currentBrush;
     QTextOption opt;
     QString currentText;
     opt.setAlignment(Qt::AlignLeft);
     opt.setWrapMode(QTextOption::NoWrap);
+    p.translate(QPointF{offset_, 0});
     for (auto it = groups_.cbegin(); it != groups_.cend(); ++it)
     {
         p.save();
@@ -92,16 +93,23 @@ void ScaleWidget::resizeEvent(QResizeEvent *ev)
 void ScaleWidget::mouseMoveEvent(QMouseEvent *ev)
 {
     auto pos = ev->pos();
-    if (pos.y() > 40 && !groups_.isEmpty())
+    if (wasPressed_)
     {
-        double koef = width() / double(rangeT);
+        offset_ += pos.x() - prevXPos_;
+        offset_ = qMax(qMin(offset_, 0.0), -(width() - 1.0) * (scale_ - 1));
+        prevXPos_ = pos.x();
+        update();
+    }
+    else if (pos.y() > 40 && !groups_.isEmpty())
+    {
+        double koef = width() * scale_ / double(rangeT);
         int newGroup = -1;
 
         mutex_->lock();
 
         for (int i = groups_.size() - 1; i >= 0; --i)
         {
-            QRectF rect(koef * groups_[i].first, 40, koef * groups_[i].second.second, 20);
+            QRectF rect(koef * groups_[i].first + offset_, 40, koef * groups_[i].second.second, 20);
             if (rect.contains(pos))
             {
                 newGroup = i;
@@ -115,6 +123,42 @@ void ScaleWidget::mouseMoveEvent(QMouseEvent *ev)
             updateGroup();
         }
     }
+    else
+        QWidget::mouseMoveEvent(ev);
+}
+
+void ScaleWidget::mousePressEvent(QMouseEvent *ev)
+{
+    if (ev->buttons() == Qt::LeftButton)
+    {
+        prevXPos_ = ev->pos().x();
+        wasPressed_ = true;
+    }
+    QWidget::mousePressEvent(ev);
+}
+
+void ScaleWidget::mouseReleaseEvent(QMouseEvent *ev)
+{
+    wasPressed_ = false;
+    QWidget::mousePressEvent(ev);
+}
+
+void ScaleWidget::wheelEvent(QWheelEvent *ev)
+{
+    if (ev->delta() > 0)
+    {
+        scale_ *= 1.2;
+        offset_ *= 1.2;
+    }
+    else
+    {
+        scale_ = qMax(1.0, scale_ / 1.2);
+        if (scale_ != 1.0)
+            offset_ /= 1.2;
+    }
+    offset_ = qMax(qMin(offset_, 0.0), -(width() - 1.0) * (scale_ - 1));
+    timer_.stop();
+    timer_.start();
 }
 
 void ScaleWidget::drawScale(QPainter *p)
@@ -124,7 +168,8 @@ void ScaleWidget::drawScale(QPainter *p)
     opt.setAlignment(Qt::AlignHCenter);
     QRectF textRect(QPointF{-10, 15}, QSize(20, 20));
     p->drawRect(0, 0, width() - 1, height() - 1);
-    double partW = (width() - 1) / 24.0;
+    p->translate(QPointF{offset_, 0});
+    double partW = (width() - 1) * scale_ / (24.0 );
     for (int i = 0; i <= 24; ++i)
     {
         p->save();
@@ -141,7 +186,7 @@ void ScaleWidget::recalculate()
     QList<QPair<int, QPair<int, int>>> newGroups;
     if (!labels_.isEmpty())
     {
-        long long int range = rangeT * 100 / width();
+        long long int range = rangeT * 100.0 / double (width() * scale_);
 
         QPair<int, int> info = {1, labels_.begin().value()};
         int key = labels_.begin().key();

@@ -20,7 +20,10 @@ signals:
 private:
     void paintEvent(QPaintEvent* ev) override;
     void resizeEvent(QResizeEvent* ev) override;
-    void mouseMoveEvent(QMouseEvent*ev) override;
+    void mouseMoveEvent(QMouseEvent* ev) override;
+    void mousePressEvent(QMouseEvent* ev) override;
+    void mouseReleaseEvent(QMouseEvent* ev) override;
+    void wheelEvent(QWheelEvent* ev) override;
 
     void drawScale(QPainter* p);
     void recalculate();
@@ -33,6 +36,10 @@ private:
     QTimer timer_;
     int currentGroup_ = -1;
     QMutex* mutex_;
+    double scale_ = 1.0;
+    double offset_ = 0.0;
+    bool wasPressed_ = false;
+    int prevXPos_ = 0;
 };
 
 #endif // SCALEWIDGET_H
